@@ -1,0 +1,9 @@
+Vendored declarations of ESP-NN (Espressif Systems), the ESP32-P4 RISC-V PIE kernel API.
+
+Files: esp_nn_riscv_pie.h, esp_nn_ansi_headers.h, esp_nn_defs.h
+Source: espressif__esp-nn/include in the ESP32 Arduino core 3.3.12 (esp32p4_es-libs package,
+        ESP-IDF v5.5.5). Copied unchanged.
+License: Apache-2.0 (SPDX headers in the files; full text in LICENSE.esp-nn.txt).
+
+Only the declarations are vendored. The compiled library (libespressif__esp-nn.a) is still
+linked from the Arduino core, as described in docs/Quantization.md.

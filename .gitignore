@@ -1,0 +1,7 @@
+build/
+build*/
+.vscode/
+models/yolo11n/yolo11n.pt
+models/yolo11n/export/
+models/yolo26n/yolo26n.pt
+models/yolo26n/export/
