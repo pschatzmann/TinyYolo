@@ -17,7 +17,7 @@ ESP-NN for the convolutions (`kP4Kernels` false). The attention blocks take 2.4 
 
 ## Create the weights and the table
 
-Quick way: `PYTHON=python3 tools/yolo26/yolo26_fetch_models.sh` (see `models/yolo26n/README.md`).
+Quick way: `python tools/fetch_models.py yolo26n` (see `models/yolo26n/README.md`).
 The manual steps are:
 
 ```sh

@@ -109,11 +109,11 @@ of primitive operations (`src/TinyYolo/graph/Graph.h`) with an anchor-free head
 
 ### Get the model
 
-`tools/yolo11/yolo11_fetch_models.sh` downloads the nano weights (checksum checked) into
+`tools/fetch_models.py yolo11n` downloads the nano weights (checksum checked) into
 `models/yolo11n/` and exports them (needs Python with `ultralytics`; set `PYTHON`):
 
 ```sh
-PYTHON=python3 tools/yolo11/yolo11_fetch_models.sh
+python tools/fetch_models.py yolo11n
 ```
 
 The model folder is described in `models/yolo11n/README.md`. The int8 scales are calibrated on one
@@ -133,12 +133,12 @@ image: the test photo by default, or `CALIBRATION_IMAGE` for another image.
 | `Yolo26CameraStream` | `examples/Yolo26CameraStream` | P4: camera, streamed to `tinyyolo`, graph path |
 
 The YOLO11 and YOLO26 tools and examples start with `yolo11`/`Yolo11` and `yolo26`/`Yolo26`; the YOLOv4
-ones start with `yolov4`/`Yolov4` (`tools/yolov4_fetch_models.sh`, `examples/Yolov4CameraStream`). The
+ones start with `yolov4`/`Yolov4` (`tools/fetch_models.py yolov4-tiny`, `examples/Yolov4CameraStream`). The
 exporter (`tools/yolo/yolo_export.py`) serves both YOLO11 and YOLO26, and writes the single-file model; one desktop tool, `tinyyolo`, runs both (`--tym`, and `--check` for the layer check).
 
 ### YOLO26
 
-`tools/yolo26/yolo26_fetch_models.sh` gets the YOLO26n checkpoint (checksum checked) and exports it like
+`tools/fetch_models.py yolo26n` gets the YOLO26n checkpoint (checksum checked) and exports it like
 YOLO11. YOLO26 differs from YOLO11 in three places, which the exporter and the decoder handle:
 
 - No DFL: the box head predicts four distances directly (`reg_max` 1). `AnchorFreeLevel::reg_max`

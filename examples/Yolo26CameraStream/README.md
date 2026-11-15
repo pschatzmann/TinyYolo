@@ -14,7 +14,7 @@ are the same as in `Yolov4CameraStream`.
 
 1. Get the weights and export them (needs Python with `ultralytics`):
    ```bash
-   PYTHON=python3 tools/yolo26/yolo26_fetch_models.sh      # writes models/yolo26n/export and models/yolo26n/yolo26n.tym
+   python tools/fetch_models.py yolo26n      # writes models/yolo26n/export and models/yolo26n/yolo26n.tym
    ```
 2. Flash the blob to the `model` partition (the sketch reads it from there):
    ```bash

@@ -38,16 +38,20 @@ For a CPU-only machine, install the CPU build of PyTorch first (see pytorch.org 
 python -c "import ultralytics, torch; print(ultralytics.__version__, torch.__version__)"
 ```
 
-To run the fetch scripts with this environment, pass its Python:
+To run the fetch script with this environment, pass its Python:
 
 ```sh
-PYTHON=~/venvs/tinyyolo/bin/python tools/yolo11/yolo11_fetch_models.sh
+python tools/fetch_models.py yolo11n --python ~/venvs/tinyyolo/bin/python
 ```
 
+On Windows, use the same commands with the Python launcher, for example `py tools\fetch_models.py yolo11n --python C:\path\to\venv\Scripts\python.exe`.
+`tools/fetch_models.py` replaces the old shell scripts and runs the same way on Windows, Linux and macOS. It
+accepts `yolo11n`, `yolo26n`, `yolov4-tiny` or `all`.
+
 The checkpoints `models/yolo11n/yolo11n.pt` and `models/yolo26n/yolo26n.pt` are in the repository, and the
-scripts download them again if they are missing. Verified: with `ultralytics` 8.4.214 and PyTorch 2.15.0 the export of YOLO11n reproduces `models/yolo11n/yolo11n.tym`
-byte for byte, and the layer check gives the same result. Other versions are not tested; a different release can
-change the exported files.
+fetch script downloads them again if they are missing. Verified: with `ultralytics` 8.4.214 and PyTorch 2.15.0
+the export of YOLO11n and YOLO26n reproduces `models/*/*.tym` byte for byte, and the layer checks give the same
+results. Other versions are not tested; a different release can change the exported files.
 
 ## Boards (Arduino)
 

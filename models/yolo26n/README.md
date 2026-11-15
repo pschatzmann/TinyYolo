@@ -8,13 +8,13 @@ attention block.
 
 | File | Content | How it is made |
 |---|---|---|
-| `yolo26n.pt` | the Ultralytics checkpoint (5.5 MB) | downloaded by `tools/yolo26/yolo26_fetch_models.sh` (checksum checked) |
+| `yolo26n.pt` | the Ultralytics checkpoint (5.5 MB) | downloaded by `tools/fetch_models.py yolo26n` (checksum checked) |
 | `yolo26n.tym` | the single-file model (graph, scales, float and int8 weights, class names; 12091109 bytes) | written by the export (`tools/yolo/yolo_export.py`); the desktop loads it with `tinyyolo --tym` |
 
 Get the weights and the export (needs Python with the `ultralytics` package):
 
 ```sh
-PYTHON=python3 tools/yolo26/yolo26_fetch_models.sh
+python tools/fetch_models.py yolo26n
 ```
 
 The int8 activation scales are calibrated on one image: by default the test photo of the examples.

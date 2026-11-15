@@ -5,7 +5,7 @@ graph path (`tinyyolo::GraphYolo11`), not from a Darknet file.
 
 | File | Content | How it is made |
 |---|---|---|
-| `yolo11n.pt` | the Ultralytics checkpoint (5.6 MB) | downloaded by `tools/yolo11/yolo11_fetch_models.sh` (checksum checked) |
+| `yolo11n.pt` | the Ultralytics checkpoint (5.6 MB) | downloaded by `tools/fetch_models.py yolo11n` (checksum checked) |
 | `yolo11n.tym` | the single-file model (graph, scales, float and int8 weights, class names; 13124885 bytes) | written by the export (`tools/yolo/yolo_export.py`); the board's `CameraStream` loads it from the `model` partition, the desktop with `tinyyolo --tym` |
 | `export/` (other files) | the intermediate export (graph weights, operation list, table) | exported |
 
@@ -16,7 +16,7 @@ The int8 activation scales are calibrated on one image: by default the test phot
 Get the weights and the export (needs Python with the `ultralytics` package):
 
 ```sh
-PYTHON=python3 tools/yolo11/yolo11_fetch_models.sh
+python tools/fetch_models.py yolo11n
 ```
 
 The examples use the table and the blob:

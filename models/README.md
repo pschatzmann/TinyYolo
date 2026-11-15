@@ -2,18 +2,18 @@
 
 Open-source models, ready for TinyYolo. Each folder holds the model's files and a README. The
 trained weights are too large for the repository: fetch them with the script of the model's
-version (`tools/<version>_fetch_models.sh`).
+version (`tools/fetch_models.py <model>`).
 
 | Folder | Model | Classes | Input | Path | Fetch |
 |---|---|---|---|---|---|
-| `yolov4-tiny/` | YOLOv4-tiny, trained on COCO | 80 | 416x416 (examples: 192x192) | Darknet (`.cfg`, `.weights`) | `tools/yolov4_fetch_models.sh` |
-| `yolo11n/` | YOLO11n (Ultralytics), trained on COCO | 80 | 640x640 | graph (table and blob, exported) | `tools/yolo11/yolo11_fetch_models.sh` |
-| `yolo26n/` | YOLO26n (Ultralytics), trained on COCO | 80 | 640x640 | graph (table and blob, exported) | `tools/yolo26/yolo26_fetch_models.sh` |
+| `yolov4-tiny/` | YOLOv4-tiny, trained on COCO | 80 | 416x416 (examples: 192x192) | Darknet (`.cfg`, `.weights`) | `tools/fetch_models.py yolov4-tiny` |
+| `yolo11n/` | YOLO11n (Ultralytics), trained on COCO | 80 | 640x640 | single-file model (exported) | `tools/fetch_models.py yolo11n` |
+| `yolo26n/` | YOLO26n (Ultralytics), trained on COCO | 80 | 640x640 | single-file model (exported) | `tools/fetch_models.py yolo26n` |
 
 Use a YOLOv4-tiny model with the tinyyolo tool:
 
 ```bash
-tools/yolov4_fetch_models.sh
+tools/fetch_models.py yolov4-tiny
 cmake -S . -B build && cmake --build build --target tinyyolo
 build/desktop/tinyyolo --model models/yolov4-tiny/yolov4-tiny --image photo.ppm --no-window
 ```

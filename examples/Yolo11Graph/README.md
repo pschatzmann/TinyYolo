@@ -16,7 +16,7 @@ test photo (`photo.rgb`, 375x250, letterboxed to 320x320) one frame takes about 
 
 ## Create the weights and the table
 
-Quick way: `PYTHON=python3 tools/yolo11/yolo11_fetch_models.sh` (see `models/yolo11n/README.md`).
+Quick way: `python tools/fetch_models.py yolo11n` (see `models/yolo11n/README.md`).
 The manual steps are:
 
 ```sh

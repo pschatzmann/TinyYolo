@@ -11,7 +11,7 @@ Files:
 
 1. Export the weights to a model blob (on the desktop, from the repository root):
    ```bash
-   tools/yolov4_fetch_models.sh
+   tools/fetch_models.py yolov4-tiny
    build/desktop/tinyyolo_export_blob examples/Yolov4CameraStream/yolov4-tiny-192.cfg \
        models/yolov4-tiny/yolov4-tiny.weights yolov4-tiny.blob
    ```
