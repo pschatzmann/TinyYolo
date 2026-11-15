@@ -1,7 +1,8 @@
 # YOLOv4-tiny
 
 YOLOv4-tiny (Darknet), trained on COCO (80 classes). The network in `yolov4-tiny.cfg` takes 416x416 pictures;
-the desktop tool and the `Yolov4CameraStream` example use 320x320 and 192x192 (see the example's README).
+the `Yolov4CameraStream` example uses a 192x192 version of the network, and the desktop tool can run other input
+sizes with `--size` (see the example's README).
 It runs on the TinyYolo Darknet path (`TinyYoloModel`), not as a single-file `.tym` model.
 
 | File | Content | How it is made |
