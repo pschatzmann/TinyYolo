@@ -247,7 +247,7 @@ Cortex-M0+ of the RP2040 and any other core use the portable kernels.
 
 The RP2350B runs at 300 MHz with `-Ofast` and PSRAM at 133 MHz (the Arduino-Pico board options
 `freq=300`, `opt=Fast`, `psramfreq=freq133`). The frame times are in the
-[README](../README.md#performance).
+[Performance](Performance.md).
 
 ## ESP32-P4
 

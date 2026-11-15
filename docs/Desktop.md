@@ -67,7 +67,7 @@ The desktop tools use `DotProductBackend`. On x86-64 the desktop CMake file buil
 and the int8 convolutions then use AVX2 with exact int32 sums; without AVX2 the same code runs as scalar
 code, with the same results. An int8 graph run at 320x320 takes about 1 s, and a float32 run about 2 s.
 `tinyyolo` runs YOLOv4-tiny (`--model`) in about 10 s (weights-only int8), 7.5 s (float32) and 3.3 s with
-`--calibrate`. The times in the [README](../README.md#performance) are the mean of three runs at 320x320
+`--calibrate`. The times in the [Performance](Performance.md) are the mean of three runs at 320x320
 with `--size 320` and `-DCMAKE_BUILD_TYPE=Release`, on a machine with other load.
 
 ### The tinyyolo tool

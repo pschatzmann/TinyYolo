@@ -108,5 +108,5 @@ described in [Quantization](Quantization.md).
 - Without an optimised kernel (ESP-NN on the S3, the assembly kernels on the P4, CMSIS-NN on the
   RP2350B), the int8 dot product is scalar code, so int8 weights save memory but not time.
 - Buffers go to internal RAM first and to PSRAM when internal RAM cannot hold them. The frame
-  times of every board are in the [README](../README.md#performance).
+  times of every board are in the [Performance](Performance.md).
 - AVR boards, TPU, GPU and FPGA accelerators are not supported.

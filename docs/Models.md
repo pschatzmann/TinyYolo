@@ -246,7 +246,7 @@ operation (`graph.opMicros(i)`).
 ### Performance
 
 All variants are measured at the same 320x320 input on the same photo. The table with every
-variant and board is in the [README](../README.md#performance).
+variant and board is in the [Performance](Performance.md).
 
 The first convolution has 3 input channels. It is padded to 16 channels (zeros in channels 3 to 15,
 and a zero border), so the aligned 16-channel kernel runs it. The kernel matches a naive integer
