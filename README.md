@@ -48,6 +48,8 @@ Detailed documentation is in the [docs](docs/) folder:
 - [Quantization](docs/Quantization.md): int8 weights, memory savings and accuracy
 - [Memory](docs/Memory.md): flash, PSRAM and internal RAM requirements of the YOLO models
 - [Design](docs/Design.md): architecture, error handling and platform abstraction
+- [Setup](docs/Setup.md): what to install for the desktop tools, the model export and the boards
+- [Model format](docs/ModelFormat.md): the single-file `.tym` model
 - [Desktop](docs/Desktop.md): desktop build, the host tools (`desktop/`), the common viewer (`tinyyolo`: any model on the webcam or pictures), automated tests and sanitizers
 
 ## Status
