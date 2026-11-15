@@ -44,14 +44,17 @@ The window shows `YOLO11n int8` on the top card, the picture, and each detection
 Binary-safe, 921600 baud, 8N1. Before each frame the sketch sends:
 
 - `MODEL <name>` (the model name shown in the window),
-- `FRAME <w> <h> <nbytes> <ndet>` (the picture size, here 160x120, its byte count and the number of detections),
-- one line per detection, `x y width height score class`, in the 320x240 picture coordinates,
-- the picture as RGB565 little-endian, row by row.
+- `JPEG <w> <h> <nbytes> <ndet>` (the picture size, 320x240, the byte count of the JPEG and the number of detections),
+- one line per detection, `x y width height score class`, in the picture coordinates,
+- the camera's JPEG picture, as the camera delivered it (about 4.5 KB per frame).
+
+The desktop tool decodes the JPEG with TinyJPEG. The older `FRAME <w> <h> <nbytes> <ndet>` header
+(a raw RGB565 picture) is still understood by the tool.
 
 ## Notes
 
-- The camera delivers JPEG frames, and each frame is decoded to RGB565 in PSRAM. A QVGA RGB565 capture
-  does not initialize on the S3-EYE (`cam_dma_config failed`), while JPEG does.
+- The camera delivers JPEG frames, and each frame is decoded to RGB565 in PSRAM for the detector. A QVGA
+  RGB565 capture does not initialize on the S3-EYE (`cam_dma_config failed`), while JPEG does.
 - The sketch uses the S3-EYE pin preset of TinyCamera. Logging is off, because log lines would corrupt the stream.
 - After a flash, the board sometimes stays in the ROM's download mode (`waiting for download`). Press
   RESET once, with BOOT not held, and the sketch starts.

@@ -41,6 +41,7 @@ if(TINYYOLO_BUILD_CAMERA_VIEW)
   set(TINYCAMERA_DIR "${CMAKE_SOURCE_DIR}/../TinyCamera" CACHE PATH "TinyCamera library directory")
   set(TINYGPU_DIR "${CMAKE_SOURCE_DIR}/../TinyGPU" CACHE PATH "TinyGPU library directory")
   set(TINYMD_DIR "${CMAKE_SOURCE_DIR}/../TinyMaterialDesign" CACHE PATH "TinyMaterialDesign library directory")
+  set(TINYJPEG_DIR "${CMAKE_SOURCE_DIR}/../TinyJPEG" CACHE PATH "TinyJPEG library directory (header-only JPEG decoder)")
   find_package(PkgConfig REQUIRED)
   find_package(Threads REQUIRED)
   pkg_check_modules(SDL2 REQUIRED IMPORTED_TARGET sdl2)
@@ -54,7 +55,7 @@ if(TINYYOLO_BUILD_CAMERA_VIEW)
   add_executable(tinyyolo tinyyolo/tinyyolo.cpp)
   # TinyMaterialDesign is header-only: its src folder is added, and its TinyGPU dependency is
   # the TinyGPU::TinyGPU target above.
-  target_include_directories(tinyyolo PRIVATE ${TINYMD_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/../tools/yolo)
+  target_include_directories(tinyyolo PRIVATE ${TINYMD_DIR}/src ${TINYJPEG_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/../tools/yolo)
   target_link_libraries(tinyyolo PRIVATE TinyYolo TinyCamera::TinyCamera TinyGPU::TinyGPU PkgConfig::SDL2 Threads::Threads)
   set_target_properties(tinyyolo PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
   # The convolution kernels vectorize best for the machine they run on.

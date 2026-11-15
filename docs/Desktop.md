@@ -84,7 +84,10 @@ still pictures, and shows the picture with the detection boxes and the results i
 - int8 (default) or float32 (`--float`); `--calibrate` for int8 activations of a Darknet model;
   `--per-tensor`, `--size N`, `--score T` and `--names <file>` for the other settings;
 - a board stream (`--serial <port>`, `--rotate 0|90|180|270`): the picture and detections of a board running
-  `examples/CameraStream` or one of the `*CameraStream` examples, shown in the same window;
+  `examples/CameraStream` or one of the `*CameraStream` examples, shown in the same window. The board sends
+  its model name, which the window shows at the top; the picture is a JPEG that the tool decodes with
+  TinyJPEG (or a raw RGB565 picture from the P4 and Darknet examples); the class names come from
+  `models/yolo11n/yolo11n.names` unless `--names` is given;
 - `--frames N` stops after N recognitions, and `--no-window` prints each recognition and its time.
 
 ```bash
@@ -94,7 +97,8 @@ build/desktop/tinyyolo --yolo26 models/yolo26n/export --image photo.ppm --no-win
 ```
 
 The window needs SDL2 and the TinyCamera, TinyGPU and TinyMaterialDesign libraries in the folders next
-to this one (or set `TINYCAMERA_DIR`, `TINYGPU_DIR` and `TINYMD_DIR`). The window build is off by default:
+to this one (or set `TINYCAMERA_DIR`, `TINYGPU_DIR`, `TINYMD_DIR` and `TINYJPEG_DIR`; TinyJPEG is the
+header-only JPEG decoder used for the board stream). The window build is off by default:
 
 ```bash
 cmake -S . -B build -DTINYYOLO_BUILD_CAMERA_VIEW=ON

@@ -10,12 +10,12 @@
 //
 // Frame protocol (binary-safe, 921600 baud, 8N1):
 //   "MODEL <name>\n"                          the model name, before every frame
-//   "FRAME <w> <h> <nbytes> <ndet>\n"        header, picture size 160x120 here
-//   ndet lines "x y width height score class\n"   boxes in 320x240 picture
-//   coordinates nbytes bytes: the picture as RGB565 little-endian, row by row
+//   "JPEG <w> <h> <nbytes> <ndet>\n"         header: the picture is the camera's JPEG, w x h
+//   ndet lines "x y width height score class\n"   boxes in the w x h picture
+//   nbytes bytes: the JPEG picture, as the camera delivered it
 //
 // The camera delivers JPEG frames (an RGB565 DMA capture does not initialize on the
-// S3-EYE); each frame is decoded to RGB565 for the detector.
+// S3-EYE); each frame is decoded to RGB565 for the detector, and the JPEG is sent as it is.
 //
 // Logging is off, because log lines would corrupt the stream.
 
@@ -57,8 +57,6 @@ const char* kModelName = "YOLO11n int8";
 const int kInputSize = 320;  // the network input (the measurements use 320x320)
 const int kCaptureWidth = 320;
 const int kCaptureHeight = 240;
-const int kSendWidth = 160;  // every second pixel is sent
-const int kSendHeight = 120;
 const unsigned long kBaud = 921600;
 
 using namespace tinyyolo;
@@ -70,7 +68,6 @@ BoardBackend backend;
 TinyCamera camera;
 Buffer<uint8_t> rgb565;  // the decoded picture (PSRAM when it is large)
 Detections detections;
-Buffer<uint8_t> send_bytes;
 
 /// Halts the sketch after a fatal setup error.
 void stop() {
@@ -90,8 +87,7 @@ void setup() {
       detections.reserve(100) != Status::Ok) {
     stop();
   }
-  if (rgb565.allocate(kCaptureWidth * kCaptureHeight * 2, MemoryPlacement::PsramFirst) != Status::Ok ||
-      send_bytes.allocate(kSendWidth * kSendHeight * 2) != Status::Ok) {
+  if (rgb565.allocate(kCaptureWidth * kCaptureHeight * 2, MemoryPlacement::PsramFirst) != Status::Ok) {
     stop();
   }
   if (!startCamera(camera)) {
@@ -107,13 +103,12 @@ void loop() {
   if (detector.detect(picture, detections) != Status::Ok) return;
 
   out.printf("MODEL %s", kModelName);
-  out.printf("FRAME %d %d %d %d", kSendWidth, kSendHeight, kSendWidth * kSendHeight * 2, detections.size());
+  out.printf("JPEG %d %d %d %d", kCaptureWidth, kCaptureHeight, (int)frame.size(), detections.size());
   for (int i = 0; i < detections.size(); ++i) {
     const Detection& d = detections[i];
     out.printf("%.1f %.1f %.1f %.1f %.3f %d", d.x, d.y, d.width, d.height, d.score, d.class_id);
   }
-  // The picture for the viewer: the camera frame scaled to the stream size, little-endian.
-  const ImageView small = picture.scaleTo(send_bytes.data(), kSendWidth, kSendHeight, tinyyolo::PixelFormat::RGB565Little);
-  Serial.write(small.data(), small.byteCount());
+  // The picture for the viewer: the camera's JPEG as it came from the camera (the desktop decodes it).
+  Serial.write(frame.data(), frame.size());
   Serial.flush();
 }

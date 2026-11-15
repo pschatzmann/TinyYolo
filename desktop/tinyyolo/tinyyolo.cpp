@@ -10,7 +10,9 @@
 //   --device <path>    V4L2 device (default: TINY_CAMERA_DEVICE, else /dev/video0)
 //   --image <ppm>      a binary PPM picture; repeat the option for several (they are shown in turn)
 //   --serial <port>    the stream of a board running examples/CameraStream (921600 baud); the board
-//                      does the detection, and the window shows its pictures and detections
+//                      does the detection (JPEG pictures, decoded here), and the window shows its
+//                      pictures, the model name it sends, and the detections with the class names
+//                      of models/yolo11n (--names overrides them)
 //   --rotate <deg>     rotate the picture of a board stream: 0 (default), 90, 180 or 270, clockwise
 // Options:
 //   --float            float32 weights (default: int8)
@@ -59,6 +61,7 @@
 #include "DarknetModel.h"  // the built-in Darknet sample
 #include "yolo11n_graph.inc"
 #include "yolo26n_graph.inc"
+#include <TinyJPEGDecoder.h>  // the board sends JPEG frames
 
 using namespace tinygpu;  // TinyGPU's display types
 using namespace tinyyolo;
@@ -523,11 +526,38 @@ bool readBoardLine(std::string& line) {
   }
 }
 
-/// Reads one frame of the CameraStream protocol: the header "FRAME w h bytes detections", the
-/// detections (one line each), then the picture bytes. Lines that do not parse are skipped.
+/// Decodes the per-block output of TinyJPEG into the RGB565 picture.
+struct JpegRawCtx {
+  uint8_t* out;
+  uint16_t dest_width;
+};
+
+bool copyJpegBlock(tinyjpeg::TinyJPEGDecoder& decoder, int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t* data) {
+  auto* ctx = static_cast<JpegRawCtx*>(decoder.getUserData());
+  uint16_t* out = reinterpret_cast<uint16_t*>(ctx->out);
+  for (uint16_t row = 0; row < h; row++) {
+    memcpy(out + (size_t)(y + row) * ctx->dest_width + x, data + (size_t)row * w, (size_t)w * sizeof(uint16_t));
+  }
+  return true;
+}
+
+/// Decodes a JPEG picture of w x h to RGB565 (the native byte order of the host) into raw.
+bool decodeJpegToRgb565(const std::vector<uint8_t>& jpeg, int w, int h, std::vector<uint8_t>& raw) {
+  raw.assign((size_t)w * h * 2, 0);
+  JpegRawCtx ctx{raw.data(), (uint16_t)w};
+  tinyjpeg::TinyJPEGDecoder decoder;
+  decoder.setUserData(&ctx);
+  decoder.setCallback(copyJpegBlock);
+  return decoder.drawJpg(0, 0, jpeg.data(), jpeg.size()) == JDR_OK;
+}
+
+/// Reads one frame of the CameraStream protocol: the header "FRAME w h bytes detections" (a raw
+/// RGB565 picture of w x h when bytes = w*h*2) or "JPEG w h bytes detections" (a JPEG picture),
+/// the detections (one line each), then the picture bytes. Lines that do not parse are skipped.
 bool readBoardFrame(std::vector<uint8_t>& raw, int& w, int& h, std::vector<Detection>& boxes) {
   std::string line;
   int nbytes = 0, ndet = 0;
+  bool jpeg = false;
   while (true) {
     if (!readBoardLine(line)) return false;
     // The picture bytes are not newline-terminated, so the header can follow them on the same line.
@@ -539,10 +569,15 @@ bool readBoardFrame(std::vector<uint8_t>& raw, int& w, int& h, std::vector<Detec
       board_model = name;
       board_model_new = true;
     }
+    const size_t jpeg_at = line.find("JPEG");
+    if (jpeg_at != std::string::npos && sscanf(line.c_str() + jpeg_at, "JPEG %d %d %d %d", &w, &h, &nbytes, &ndet) == 4) {
+      jpeg = true;
+      break;
+    }
     const size_t at = line.find("FRAME");
     if (at != std::string::npos && sscanf(line.c_str() + at, "FRAME %d %d %d %d", &w, &h, &nbytes, &ndet) == 4) break;
   }
-  if (w <= 0 || h <= 0 || nbytes != w * h * 2 || ndet < 0) return true;  // skip this frame
+  if (w <= 0 || h <= 0 || nbytes <= 0 || ndet < 0) return true;  // skip this frame
   boxes.clear();
   for (int i = 0; i < ndet; ++i) {
     if (!readBoardLine(line)) return false;
@@ -551,6 +586,16 @@ bool readBoardFrame(std::vector<uint8_t>& raw, int& w, int& h, std::vector<Detec
       boxes.push_back(d);
     }
   }
+  if (jpeg) {
+    std::vector<uint8_t> jpeg_bytes((size_t)nbytes);
+    if (!readBoardBytes(jpeg_bytes.data(), jpeg_bytes.size())) return false;
+    if (!decodeJpegToRgb565(jpeg_bytes, w, h, raw)) {
+      fprintf(stderr, "tinyyolo: a JPEG frame did not decode\n");
+      raw.clear();
+    }
+    return true;
+  }
+  if (nbytes != w * h * 2) return true;  // skip this frame
   raw.resize((size_t)nbytes);
   return readBoardBytes(raw.data(), raw.size());
 }
