@@ -64,5 +64,7 @@ if(TINYYOLO_BUILD_CAMERA_VIEW)
   endif()
   # The default model: the YOLO26n export of this repository (the fastest on the desktop).
   target_compile_definitions(tinyyolo PRIVATE "TINYYOLO_DEFAULT_MODEL=\"${CMAKE_CURRENT_SOURCE_DIR}/../models/yolo26n/export\"")
+  # The class names of the board stream (the CameraStream example runs YOLO11n).
+  target_compile_definitions(tinyyolo PRIVATE "TINYYOLO_BOARD_NAMES=\"${CMAKE_CURRENT_SOURCE_DIR}/../models/yolo11n/yolo11n.names\"")
 endif()
 

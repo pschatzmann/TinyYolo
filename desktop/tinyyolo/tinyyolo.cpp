@@ -484,6 +484,8 @@ std::mutex board_mutex;
 std::vector<uint8_t> board_picture;   // the newest picture: RGB565 little-endian, 320x240
 std::vector<Detection> board_boxes;   // its detections (in the 320x240 picture space)
 bool board_new = false;
+std::string board_model;  // the "MODEL <name>" line of the board (empty: not sent)
+bool board_model_new = false;
 bool board_failed = false;
 Task* board_task = new Task();        // never destroyed: the reader may be blocked in read()
 
@@ -529,6 +531,14 @@ bool readBoardFrame(std::vector<uint8_t>& raw, int& w, int& h, std::vector<Detec
   while (true) {
     if (!readBoardLine(line)) return false;
     // The picture bytes are not newline-terminated, so the header can follow them on the same line.
+    const size_t model_at = line.find("MODEL ");
+    if (model_at != std::string::npos) {
+      std::string name = line.substr(model_at + 6);
+      while (!name.empty() && (name.back() == '\r' || name.back() == '\n' || name.back() == ' ')) name.pop_back();
+      std::lock_guard<std::mutex> lock(board_mutex);
+      board_model = name;
+      board_model_new = true;
+    }
     const size_t at = line.find("FRAME");
     if (at != std::string::npos && sscanf(line.c_str() + at, "FRAME %d %d %d %d", &w, &h, &nbytes, &ndet) == 4) break;
   }
@@ -605,7 +615,7 @@ int runBoardStream() {
                                        kBoardHeight, [](int class_id) { return boardLabel(class_id); }));
   char rotation[32];
   snprintf(rotation, sizeof(rotation), "rotation %d", board_rotation);
-  view->setInfo("CameraStream board", rotation, board_port.c_str());
+  view->setInfo("CameraStream board", rotation, board_port.c_str());  // replaced by the MODEL line
   app->screen().addFixedWidget(*view);
   board_task->begin(readBoard);
 
@@ -615,6 +625,12 @@ int runBoardStream() {
       if (board_failed) {
         fprintf(stderr, "tinyyolo: the board stream stopped\n");
         return 1;
+      }
+      if (board_model_new) {
+        char rotation_text[32];
+        snprintf(rotation_text, sizeof(rotation_text), "rotation %d", board_rotation);
+        view->setInfo(board_model.empty() ? "CameraStream board" : board_model.c_str(), rotation_text, board_port.c_str());
+        board_model_new = false;
       }
       if (board_new) {
         view->setPicture(ImageView(board_picture.data(), kBoardWidth, kBoardHeight, PixelFormat::RGB565Little));
@@ -681,6 +697,9 @@ int main(int argc, char** argv) {
 
   // A board stream: the board detects, the window shows its pictures and detections.
   if (!board_port.empty()) {
+#ifdef TINYYOLO_BOARD_NAMES
+    if (options.names_path.empty()) options.names_path = TINYYOLO_BOARD_NAMES;  // the YOLO11n names
+#endif
     if (!options.names_path.empty()) board_names = readNames(options.names_path);
     return runBoardStream();
   }

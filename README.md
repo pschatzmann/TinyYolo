@@ -118,7 +118,7 @@ I recommend git, because you can update to the latest version with `git pull` in
 Examples are in the `examples/` folder:
 
 - `CameraDetect`: live capture with TinyCamera and a Darknet model embedded in the sketch.
-- `CameraStream`: streams camera frames to a desktop viewer.
+- `CameraStream`: YOLO11n on the ESP32-S3-EYE camera, streamed to the desktop tool (`tinyyolo --serial`).
 - `DrawDetections`: boxes drawn on an LCD with TinyGPU.
 - `Yolov4CameraStream`: YOLOv4-tiny (Darknet) on a camera board, streamed to the viewer.
 - `Yolo11Graph`, `Yolo26Graph`: YOLO11n and YOLO26n on the ESP32-P4 with a sample photo.

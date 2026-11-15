@@ -127,6 +127,7 @@ image: the test photo by default, or `CALIBRATION_IMAGE` for another image.
 | `yolo11_check` | `desktop/yolo/yolo_check.cpp` | desktop: every layer against the PyTorch reference |
 | `Yolo11Graph` | `examples/Yolo11Graph` | P4: the sample photo from flash, graph path |
 | `Yolo11CameraStream` | `examples/Yolo11CameraStream` | P4: camera, streamed to `tinyyolo`, graph path |
+| `CameraStream` | `examples/CameraStream` | S3-EYE: camera, YOLO11n graph path, streamed to `tinyyolo` (see its README) |
 | `tinyyolo --yolo26 …`, `yolo26_check` | `desktop/tinyyolo/tinyyolo.cpp`, `desktop/yolo/yolo_check.cpp` | desktop: as the YOLO11 tools, for YOLO26n |
 | `Yolo26Graph` | `examples/Yolo26Graph` | P4: the sample photo from flash; `kP4Kernels` selects the P4 kernels or ESP-NN |
 | `Yolo26CameraStream` | `examples/Yolo26CameraStream` | P4: camera, streamed to `tinyyolo`, graph path |
