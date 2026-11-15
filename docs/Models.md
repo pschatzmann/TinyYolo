@@ -123,19 +123,18 @@ image: the test photo by default, or `CALIBRATION_IMAGE` for another image.
 
 | Name | Where | What |
 |---|---|---|
-| `tinyyolo --yolo11 <folder> --image <ppm> --no-window` | `desktop/tinyyolo/tinyyolo.cpp` | desktop: detections on a PPM image, through `GraphYolo11` |
-| `yolo11_check` | `desktop/yolo/yolo_check.cpp` | desktop: every layer against the PyTorch reference |
+| `tinyyolo --tym models/yolo11n/yolo11n.tym --image <ppm> --no-window` | `desktop/tinyyolo/tinyyolo.cpp` | desktop: detections on a PPM image, through `GraphYolo11` |
+| `tinyyolo --check models/yolo11n/yolo11n` | `desktop/tinyyolo/LayerCheck.h` | desktop: every layer against the PyTorch reference |
 | `Yolo11Graph` | `examples/Yolo11Graph` | P4: the sample photo from flash, graph path |
 | `Yolo11CameraStream` | `examples/Yolo11CameraStream` | P4: camera, streamed to `tinyyolo`, graph path |
 | `CameraStream` | `examples/CameraStream` | S3-EYE: camera, YOLO11n graph path, streamed to `tinyyolo` (see its README) |
-| `tinyyolo --yolo26 …`, `yolo26_check` | `desktop/tinyyolo/tinyyolo.cpp`, `desktop/yolo/yolo_check.cpp` | desktop: as the YOLO11 tools, for YOLO26n |
+| `tinyyolo --tym models/yolo26n/yolo26n.tym …`, `tinyyolo --check models/yolo26n/yolo26n` | `desktop/tinyyolo/tinyyolo.cpp`, `desktop/tinyyolo/LayerCheck.h` | desktop: as the YOLO11 tools, for YOLO26n |
 | `Yolo26Graph` | `examples/Yolo26Graph` | P4: the sample photo from flash; `kP4Kernels` selects the P4 kernels or ESP-NN |
 | `Yolo26CameraStream` | `examples/Yolo26CameraStream` | P4: camera, streamed to `tinyyolo`, graph path |
 
 The YOLO11 and YOLO26 tools and examples start with `yolo11`/`Yolo11` and `yolo26`/`Yolo26`; the YOLOv4
 ones start with `yolov4`/`Yolov4` (`tools/yolov4_fetch_models.sh`, `examples/Yolov4CameraStream`). The
-exporter (`tools/yolo/yolo_export.py`) and the table generator (`tools/yolo/yolo_gen_graph.py`) serve both
-YOLO11 and YOLO26; the desktop tools are built per model by CMake (`yolo11_check`, `yolo26_check`, ...).
+exporter (`tools/yolo/yolo_export.py`) serves both YOLO11 and YOLO26, and writes the single-file model; one desktop tool, `tinyyolo`, runs both (`--tym`, and `--check` for the layer check).
 
 ### YOLO26
 
@@ -165,13 +164,12 @@ The export writes, in `out/`:
 | `*_int8_weights.bin` | int8 convolution weights, OHWI (2606816 bytes) |
 | `*_int8_scales.bin` | float32 weight scales, one per output channel (8136 values) |
 | `*_graph.json` | the operation list |
-| `*.inc` | the C++ tables: `kOps`, `kParams`, `kQuant`, `kQuantPerTensor`, `kDetectHeads`, ... |
+| `../<name>.tym` | the single-file model: the graph, the scales, the weights, the class names and the layer outputs ([Model format](ModelFormat.md)) |
 | `ref_layer*.bin` | PyTorch reference outputs of the test photo |
 
-`desktop/yolo/yolo_check.cpp` (target `yolo11_check`) runs the float graph on the desktop and compares every layer with the
-reference (about 1e-4 for the nano model). `tools/yolo/yolo11n_graph.inc` is the table used by the
-desktop checker. The checker's int8 mode uses the shared-scale table; add `--per-tensor` to use the
-per-tensor one.
+`tinyyolo --check models/yolo11n/yolo11n` runs the model on the desktop (int8 by default, `--float` for the float
+graph) and compares every layer and the head with the PyTorch reference of the export. The model file has the
+scales it was written with (shared, or per tensor with `yolo_make_tym.py --per-tensor`).
 
 ### Activation scales: two tables
 
@@ -204,18 +202,23 @@ cache reads them slowly. The float parameters are read in place through the flas
 #include <TinyYolo/graph/AnchorFree.h>
 #include <TinyYolo/graph/Graph.h>
 #include <TinyYolo/backend/Esp32NnBackend.h>
-#include "yolo11n_graph.inc"   // kOps, kParams, kQuant, kDetectHeads, ...
+#include "TinyYolo/app/ModelFilePartition.h"  // the single-file model in the flash partition
 
-using namespace yolo11;
+using namespace tinyyolo;
 
 Graph graph;
 Esp32NnBackend backend;   // int8 convolutions (P4 assembly kernels, ESP-NN otherwise)
 Tensor input;
 Detections candidates, detections;
 
-// float parameters, int8 weights (PSRAM) and weight scales (PSRAM), from the blob above
-graph.begin(kOps, kOpCount, kParams, kParamCount, weights, kTensorCount, kInputId,
-            keep, keepCount, qweights, qscales, kQuant);
+// the model file (graph, scales, names): the float parameters are read in place, the int8 weights and
+// scales are copied to PSRAM (ModelFilePartition::begin("model"))
+ModelFilePartition model_file;
+model_file.begin("model");
+GraphModel model = model_file.model();
+graph.begin(model.ops, model.op_count, model.params, model.param_count, model_file.floatWeights(),
+            model.tensor_count, model.input_id, keep, keepCount, model_file.int8Weights(),
+            model_file.int8Scales(), model.quant);
 input.allocate(Shape(640, 640, 3));
 candidates.reserve(2000);
 detections.reserve(100);
@@ -225,15 +228,15 @@ graph.run(backend, input);
 
 AnchorFreeLevel levels[3];
 for (int l = 0; l < 3; ++l) {
-  levels[l].box = &graph.tensor(kDetectHeads[l][0]);
-  levels[l].cls = &graph.tensor(kDetectHeads[l][1]);
-  levels[l].stride = kDetectStrides[l];
+  levels[l].box = &graph.tensor(model.detect_heads[l][0]);
+  levels[l].cls = &graph.tensor(model.detect_heads[l][1]);
+  levels[l].stride = model.detect_strides[l];
 }
-decodeAnchorFree(levels, 3, kDetectClasses, 0.25f, 0.7f, candidates, detections);
+decodeAnchorFree(levels, 3, model.detect_classes, 0.25f, 0.7f, candidates, detections);
 ```
 
 `keep` lists the tensors that must stay alive after their last use: the six detect-head tensors
-(`kDetectHeads`). Everything else is freed after its last consumer. The detections are in
+(the detect heads of the model). Everything else is freed after its last consumer. The detections are in
 network-input pixels; map them back with the `LetterboxInfo` of the letterbox step.
 
 Profiling: `graph.enableProfiling(true)` records the time per phase (`Graph::Phase`: quantize,

@@ -8,18 +8,17 @@ are the same as in `Yolov4CameraStream`.
 ## Files
 
 - `Yolo26CameraStream.ino`: the sketch.
-- `yolo26n_graph.inc`: the operation table (copy of `models/yolo26n/yolo26n_graph.inc`).
 - `partitions.csv`: 32 MB flash; the `model` partition at 0x310000 is about 30 MB (0x1CF0000 bytes).
 
 ## Steps
 
 1. Get the weights and export them (needs Python with `ultralytics`):
    ```bash
-   PYTHON=python3 tools/yolo26/yolo26_fetch_models.sh      # writes models/yolo26n/export/yolo26n_board.bin
+   PYTHON=python3 tools/yolo26/yolo26_fetch_models.sh      # writes models/yolo26n/export and models/yolo26n/yolo26n.tym
    ```
 2. Flash the blob to the `model` partition (the sketch reads it from there):
    ```bash
-   esptool --chip esp32p4 --port /dev/ttyACM0 write_flash 0x310000 models/yolo26n/export/yolo26n_board.bin
+   esptool --chip esp32p4 --port /dev/ttyACM0 write_flash 0x310000 models/yolo26n/yolo26n.tym
    ```
 3. Compile and upload for the ESP32-P4 (`esp32:esp32:esp32p4`, `PSRAM=enabled`, `ChipVariant=postv3`,
    `PartitionScheme=custom`). The int8 convolutions use the ESP-NN fallback kernels, so the build links

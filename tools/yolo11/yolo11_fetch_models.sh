@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Downloads the YOLO11n weights (Ultralytics, COCO, 80 classes) into models/yolo11n/ and exports
-# them for TinyYolo: the float parameters, the int8 weights and scales, the board blob
-# (yolo11n_board.bin) and the operation table (yolo11n_graph.inc). The export needs the ultralytics
+# them for TinyYolo: the float parameters, the int8 weights and scales, the single-file model
+# (yolo11n.tym, the single-file model) and the operation table of the export. The export needs the ultralytics
 # package: set PYTHON to a Python that has it (default: python3). CALIBRATION_IMAGE names the image
 # for the int8 calibration (default: the test photo of the examples). Run from anywhere.
 # The weights are AGPL-3.0 (Ultralytics); the exported files are derived from them.
@@ -29,5 +29,4 @@ if [ -z "${CALIBRATION_IMAGE:-}" ]; then
 fi
 
 "$python" "$here/tools/yolo/yolo_export.py" "$pt" "$dir/export" "$calib"
-cp "$dir/export/yolo11n.inc" "$dir/yolo11n_graph.inc"
-echo "done: $dir/export (blob: yolo11n_board.bin, table: $dir/yolo11n_graph.inc)"
+echo "done: $dir/export and $dir/yolo11n.tym (the single-file model)"

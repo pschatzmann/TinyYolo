@@ -3,7 +3,7 @@
 YOLO26n on the ESP32-P4 with the TinyYolo graph path (`Graph` + `Esp32NnBackend`). The int8
 convolutions run on the P4 assembly kernels; the rest of the graph runs in this library. On the
 test photo (`photo.rgb`, 375x250, letterboxed to 640x640). The sketch uses `tinyyolo::GraphYolo11`
-(one call per frame) and `tinyyolo::GraphYolo11Partition` (the weights from the `model` partition).
+(one call per frame) and `tinyyolo::ModelFilePartition` (the model file in the `model` partition).
 On the board, one frame takes 6.9 s with the P4 assembly kernels (`kP4Kernels` true) and 16.3 s with
 ESP-NN for the convolutions (`kP4Kernels` false). The attention blocks take 2.4 s in both builds.
 
@@ -24,10 +24,7 @@ The manual steps are:
 python3 tools/yolo/yolo_export.py yolo26n.pt out/ photo.jpg
 ```
 
-This writes `out/yolo26n_board.bin` (the blob for the board) and `out/yolo11n.inc` (the table).
-`yolo26n_graph.inc` in this folder is a copy of the table from `tools/yolo/yolo26n_graph.inc`, which
-the desktop checker uses. If you export a new model, copy the new `.inc` here and rename it to
-`yolo26n_graph.inc`.
+The export writes `out/` and `yolo26n.tym` next to it: the single-file model for the board.
 
 ## Flash the blob
 
@@ -35,7 +32,7 @@ The blob goes to the start of the "model" partition (absolute offset 0x310000, s
 `partitions.csv`):
 
 ```sh
-esptool --chip esp32p4 --port /dev/ttyACM0 write_flash 0x310000 out/yolo26n_board.bin
+esptool --chip esp32p4 --port /dev/ttyACM0 write_flash 0x310000 yolo26n.tym
 ```
 
 The blob is 13104288 bytes. The sketch's sizes must match the export: `kFloatCount` 2408932 floats,

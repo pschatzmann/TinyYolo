@@ -50,19 +50,17 @@ root `CMakeLists.txt` adds that directory. The binaries are written to `build/de
 |---|---|---|
 | `tinyyolo_make_weights` | `desktop/make_darknet_weights.cpp` | writes a Darknet `.weights` file matching a `.cfg` (pseudo-random values, for tests) |
 | `tinyyolo_export_blob` | `desktop/export_model_blob.cpp` | converts a Darknet `.cfg` and `.weights` into the int8 model blob for flash |
-| `yolo11_check`, `yolo26_check` | `desktop/yolo/yolo_check.cpp` | every layer of the graph against the PyTorch reference of the export |
 | `tinyyolo` | `desktop/tinyyolo/tinyyolo.cpp` | the common desktop tool: a Darknet model or a YOLO export, on the webcam, still pictures or a board stream, with the results in a window (see below) |
 
 Example, after the build:
 
 ```bash
 build/desktop/tinyyolo_make_weights model.cfg model.weights
-build/desktop/tinyyolo --yolo26 models/yolo26n/export --image photo.ppm --no-window --frames 1
+build/desktop/tinyyolo --tym models/yolo26n/yolo26n.tym --image photo.ppm --no-window --frames 1
 ```
 
-The YOLO tools include the generated tables from `tools/yolo/` (`yolo11n_graph.inc`,
-`yolo26n_graph.inc`), which `tools/yolo/yolo_export.py` writes. Run the export first for a model,
-as described in [Models](Models.md#yolo11-ultralytics). The Python scripts are in `tools/`, grouped by
+The YOLO models are single-file `.tym` models (see [Model format](ModelFormat.md)). The export
+(`tools/yolo/yolo_export.py`) writes them, as described in [Models](Models.md#yolo11-ultralytics). The Python scripts are in `tools/`, grouped by
 version: `tools/yolo/` (shared), `tools/yolo11/` and `tools/yolo26/` (fetch scripts).
 
 The desktop tools use `DotProductBackend`. On x86-64 the desktop CMake file builds them with `-mavx2`,
@@ -79,21 +77,22 @@ still pictures, and shows the picture with the detection boxes and the results i
 
 - a Darknet model (`--model <base>`, e.g. `models/yolov4-tiny/yolov4-tiny`), or the built-in sample;
 - by default (no model option), the YOLO26n export in `models/yolo26n/export`, the fastest model on the desktop, int8 at 320x320;
-- a YOLO11 or YOLO26 export (`--yolo11 <folder>`, `--yolo26 <folder>`, e.g. `models/yolo11n/export`);
 - the webcam (`--device <path>`, default `/dev/video0`) or still pictures (`--image <ppm>`, repeated);
 - int8 (default) or float32 (`--float`); `--calibrate` for int8 activations of a Darknet model;
   `--per-tensor`, `--size N`, `--score T` and `--names <file>` for the other settings;
+- a single-file model (`--tym <file>`, written by the export; see [Model format](ModelFormat.md)), which
+  needs no separate weight or names files;
 - a board stream (`--serial <port>`, `--rotate 0|90|180|270`): the picture and detections of a board running
   `examples/CameraStream` or one of the `*CameraStream` examples, shown in the same window. The board sends
   its model name, which the window shows at the top; the picture is a JPEG that the tool decodes with
   TinyJPEG (or a raw RGB565 picture from the P4 and Darknet examples); the class names come from
-  `models/yolo11n/yolo11n.names` unless `--names` is given;
+  the model file `models/yolo11n/yolo11n.tym` unless `--names` is given;
 - `--frames N` stops after N recognitions, and `--no-window` prints each recognition and its time.
 
 ```bash
-build/desktop/tinyyolo --yolo11 models/yolo11n/export --size 320
+build/desktop/tinyyolo --tym models/yolo11n/yolo11n.tym --size 320
 build/desktop/tinyyolo --model models/yolov4-tiny/yolov4-tiny --calibrate --device /dev/video0
-build/desktop/tinyyolo --yolo26 models/yolo26n/export --image photo.ppm --no-window --frames 1
+build/desktop/tinyyolo --tym models/yolo26n/yolo26n.tym --image photo.ppm --no-window --frames 1
 ```
 
 The window needs SDL2 and the TinyCamera, TinyGPU and TinyMaterialDesign libraries in the folders next

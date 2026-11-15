@@ -11,21 +11,21 @@ PSRAM total was not read from the board, so only its free count is given.
 |---|---|
 | Sketch, YOLO11n graph example (S3) | 658 KB |
 | Sketch, YOLO11n graph example (P4) | 749 KB |
-| YOLO11n weight blob (`yolo11n_board.bin`) | 12.5 MB |
-| YOLO26n weight blob (`yolo26n_board.bin`) | 11.5 MB |
+| YOLO11n model file (`yolo11n.tym`) | 13.1 MB |
+| YOLO26n model file (`yolo26n.tym`) | 12.1 MB |
 | `model` partition, S3 (`partitions.csv`) | 12.9 MB (0xCF0000) |
 | `model` partition, P4 (`partitions.csv`) | 28.9 MB (0x1CF0000) |
 
-Both blobs fit their partition. The blob holds the float parameters first (2,616,232 floats,
+Both model files fit their partition. The file holds the float parameters first (2,616,232 floats,
 about 10 MB), then the int8 weights (2.5 MB), then their scales (8,136 floats, 32 KB).
 
-There is no PROGMEM handling. The sketch code runs from flash, and the blob is mapped
+There is no PROGMEM handling. The sketch code runs from flash, and the model file is mapped
 with `esp_partition_mmap` and read in place. The float parameters stay in flash; reading them is slower
 than from RAM, but they take no RAM.
 
 ## PSRAM
 
-- **Int8 weights and scales:** copied from the blob at startup (`GraphYolo11Partition`), because the
+- **Int8 weights and scales:** copied from the model file at startup (`ModelFilePartition`), because the
   flash cache reads them slowly: 2.5 MB of weights and 32 KB of scales.
 - **Activations:** the graph's int8 and float tensors. The large ones are placed in PSRAM first (the
   quantized input and the convolution outputs); the rest use internal RAM when it has room.

@@ -3,9 +3,10 @@
 // YOLO11n is the fastest model on the ESP32-S3 (about 6.6 s per frame).
 //
 // Board support: everything that depends on the board is in the "board" section below.
-// The weights are read from the "model" flash partition (partitions.csv, offset 0x310000,
-// flash models/yolo11n/export/yolo11n_board.bin there first, see README.md), so the example
-// needs an ESP32 with a 16 MB flash and PSRAM. The camera pins are those of the ESP32-S3-EYE.
+// The model is a single file (docs/ModelFormat.md) in the "model" flash partition (partitions.csv,
+// offset 0x310000). It is written by the export (tools/yolo/yolo_export.py)
+// and flash it there (see README.md). The example needs an ESP32 with a 16 MB flash and PSRAM.
+// The camera pins are those of the ESP32-S3-EYE.
 // The desktop tool reads the stream: tinyyolo --serial /dev/ttyACM0
 //
 // Frame protocol (binary-safe, 921600 baud, 8N1):
@@ -24,14 +25,12 @@
 #include <TinyCameraPins.h>
 #include <TinyYolo.h>
 
-#include "yolo11n_graph.inc"  // the table: yolo11::kModel
-
 // ---- board ----------------------------------------------------------------------------
 #if defined(ESP32)
-#include <TinyYolo/app/GraphYolo11Partition.h>
+#include <TinyYolo/app/ModelFilePartition.h>
 #include <TinyYolo/backend/Esp32NnBackend.h>
-using WeightsSource = tinyyolo::GraphYolo11Partition;  // the "model" partition
-using BoardBackend = tinyyolo::Esp32NnBackend;         // the S3 int8 kernels (ESP-NN)
+using WeightsSource = tinyyolo::ModelFilePartition;  // the "model" partition, a model file
+using BoardBackend = tinyyolo::Esp32NnBackend;       // the S3 int8 kernels (ESP-NN)
 #else
 #error "CameraStream: this board has no camera and weight source set up. Add them in the board section."
 #endif
@@ -48,11 +47,6 @@ bool startCamera(TinyCamera& camera) {
 }
 // ---------------------------------------------------------------------------------------
 
-// The sizes of the export (tools/yolo/yolo_export.py) for the nano model.
-const size_t kFloatCount = 2616232;  // float parameters
-const size_t kInt8Count = 2606816;   // int8 convolution weights
-const size_t kScaleCount = 8136;     // float weight scales
-
 const char* kModelName = "YOLO11n int8";
 const int kInputSize = 320;  // the network input (the measurements use 320x320)
 const int kCaptureWidth = 320;
@@ -62,7 +56,7 @@ const unsigned long kBaud = 921600;
 using namespace tinyyolo;
 
 Output out(Serial);  // the sketch's text output (Serial)
-WeightsSource weight_blob;
+WeightsSource model_file;  // the graph and the weights, from the "model" partition
 GraphYolo11 detector;
 BoardBackend backend;
 TinyCamera camera;
@@ -78,12 +72,13 @@ void setup() {
   Serial.begin(kBaud);
   TinyCameraLogger.begin(Serial, TinyCameraLogLevel::None);
 
-  if (weight_blob.begin("model", kFloatCount, kInt8Count, kScaleCount) != Status::Ok) {
-    stop();  // flash yolo11n_board.bin at 0x310000
+  if (model_file.begin("model") != Status::Ok) {
+    stop();  // flash the model file at 0x310000
   }
-  GraphModel model = yolo11::kModel;
+  GraphModel model = model_file.model();
   model.input_size = kInputSize;
-  if (detector.begin(model, backend, weight_blob.weights(), weight_blob.qweights(), weight_blob.qscales()) != Status::Ok ||
+  if (detector.begin(model, backend, model_file.floatWeights(), model_file.int8Weights(),
+                     model_file.int8Scales()) != Status::Ok ||
       detections.reserve(100) != Status::Ok) {
     stop();
   }

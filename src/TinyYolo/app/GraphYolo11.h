@@ -1,8 +1,8 @@
 #pragma once
 /// @file GraphYolo11.h  YOLO11 on the TinyYolo graph path: one call per frame.
 ///
-/// The model is described by the generated table (tools/yolo/yolo_gen_graph.py writes `kModel` into
-/// the .inc file). The weights come from the caller: the float parameters, the int8 weights and
+/// The model is described by a GraphModel: a single-file model (docs/ModelFormat.md, read with
+/// tym::ModelFile) provides one. The weights come from the caller: the float parameters, the int8 weights and
 /// their scales (tools/yolo/yolo_export.py writes them; the examples read them from a partition).
 /// `detect()` letterboxes the image to the model input, runs the graph and decodes the three
 /// detect heads. The boxes are returned in source-image pixels.

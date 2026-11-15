@@ -35,6 +35,13 @@ if(TINYYOLO_BUILD_TESTS)
 
   add_test(NAME tinyyolo_unit_tests COMMAND tinyyolo_tests)
 
+  # The single-file model format: the round trip and the reader's checks.
+  add_executable(tinyyolo_model_file_tests tests/host/test_model_file.cpp)
+  target_link_libraries(tinyyolo_model_file_tests PRIVATE TinyYolo)
+  target_compile_options(tinyyolo_model_file_tests PRIVATE ${TINYYOLO_WARNINGS})
+  set_target_properties(tinyyolo_model_file_tests PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
+  add_test(NAME tinyyolo_model_file_tests COMMAND tinyyolo_model_file_tests)
+
   # Strict compile: the flags Arduino cores use (no exceptions, no RTTI, C++11).
   # Also checks the library compiles as C++17 (ESP32 / RP2040 / nRF52 cores).
   foreach(std 11 17)

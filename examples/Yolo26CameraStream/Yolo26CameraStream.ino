@@ -5,23 +5,19 @@
 //   tinyyolo --serial /dev/ttyACM0 --rotate 180
 //
 // The weights are in the "model" partition (partitions.csv, offset 0x310000): flash
-// yolo26n_board.bin, written by tools/yolo/yolo_export.py (see README.md).
+// the model file (see README.md).
 #include <Arduino.h>
 #include <TinyYolo.h>
 #include <TinyYolo/TinyCamera/CameraFrame.h>
-#include <TinyYolo/app/GraphYolo11Partition.h>
+#include <TinyYolo/app/ModelFilePartition.h>
 #include <TinyYolo/backend/Esp32NnBackend.h>
 #include <TinyCamera.h>
 #include <TinyCameraPins.h>
 
-#include "yolo26n_graph.inc"  // the table: yolo26::kModel
 
 using namespace tinyyolo;
 
 // The sizes of the export (tools/yolo/yolo_export.py) for the nano model.
-const size_t kFloatCount = 2408932;
-const size_t kInt8Count = 2397856;
-const size_t kScaleCount = 8516;
 
 const int kCaptureWidth = 320;  // the camera picture; the boxes are in this space
 const int kCaptureHeight = 240;
@@ -32,7 +28,7 @@ const int kDetectEvery = 1;     // the graph takes about 6 s: every frame is ana
 const tinyyolo::PixelFormat kCameraFormat = tinyyolo::PixelFormat::RGB565Little;  // ESP_Video on the P4
 
 Output out(Serial);  // the text lines of the protocol
-GraphYolo11Partition weight_blob;
+ModelFilePartition model_file;  // the model file (docs/ModelFormat.md) in the "model" partition
 GraphYolo11 detector;
 Esp32NnBackend backend;  // int8 convolutions: the P4 assembly kernels
 Detections detections;
@@ -62,11 +58,11 @@ void setup() {
   TinyCameraLogger.begin(Serial, TinyCameraLogLevel::None);
 
   startCamera();
-  if (weight_blob.begin("model", kFloatCount, kInt8Count, kScaleCount) != Status::Ok) {
-    out.printf("weights not loaded: flash yolo26n_board.bin at 0x310000");
+  if (model_file.begin("model") != Status::Ok) {
+    out.printf("weights not loaded: flash the model file at 0x310000");
     stop();
   }
-  if (detector.begin(yolo26::kModel, backend, weight_blob.weights(), weight_blob.qweights(), weight_blob.qscales()) != Status::Ok ||
+  if (detector.begin(model_file.model(), backend, model_file.floatWeights(), model_file.int8Weights(), model_file.int8Scales()) != Status::Ok ||
       detections.reserve(100) != Status::Ok) {
     out.printf("detector setup failed");
     stop();

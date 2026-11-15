@@ -6,9 +6,8 @@ usage: yolo_export.py yolo11n.pt out_dir [photo.jpg]
 
 Writes into out_dir:
   <name>_graph_weights.bin   float32 parameters, in the order the operations use them
-  <name>_graph.json          the operation list (for reference and for yolo_gen_graph.py)
-  <name>_board.bin           the three weight files concatenated: the blob for the P4 examples
-  <name>.inc                 the C++ table (namespace yolo11 or yolo26), for the desktop tools
+  <name>_graph.json          the operation list and the class names
+  ../<name>.tym              the single-file model (docs/ModelFormat.md), next to the export folder
   input_640.bin, ref_layerNN_0.bin, ref_layer23_0.bin
                              the letterboxed photo and the PyTorch outputs, to check the C++ graph
 Needs the ultralytics package (and torch). Batch-norm is folded into the convolutions.
@@ -29,7 +28,7 @@ from ultralytics.nn.modules.block import Bottleneck, C3k, PSABlock
 from ultralytics.nn.modules.conv import Conv
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import yolo_gen_graph  # noqa: E402
+import yolo_make_tym  # noqa: E402
 
 
 class Graph:
@@ -364,7 +363,9 @@ def export(net, out_dir, base, photo_path=None):
             off += arr.size
     detect = [v for v in out_of.values() if isinstance(v, list)][-1]
     head = net.model[-1]
-    doc = {"params": offsets, "ops": g.ops, "input_id": 0,
+    names = net.names
+    names = [names[i] for i in sorted(names)] if isinstance(names, dict) else list(names)
+    doc = {"names": names, "params": offsets, "ops": g.ops, "input_id": 0,
            "outputs": {str(k): v for k, v in out_of.items() if isinstance(v, int)},
            "quant": quant_entries,
            "quant_per_tensor": quant_per_tensor if photo_path is not None else [],
@@ -374,9 +375,13 @@ def export(net, out_dir, base, photo_path=None):
     json_path = os.path.join(out_dir, f"{base}_graph.json")
     with open(json_path, "w") as f:
         json.dump(doc, f, indent=1)
-    family = re.match(r"yolo\d+", base)
-    namespace = family.group(0) if family else "yolo11"
-    yolo_gen_graph.main(json_path, os.path.join(out_dir, f"{base}.inc"), namespace)
+    # The single-file model goes next to the export folder: <parent>/<base>.tym.
+    family = re.match(r"yolo\d+", base).group(0)
+    blob, ops, tensors = yolo_make_tym.build(family, out_dir, False)
+    tym_path = os.path.join(os.path.dirname(os.path.abspath(out_dir)), f"{base}.tym")
+    with open(tym_path, "wb") as f:
+        f.write(blob)
+    print(f"model file: {tym_path} ({len(blob)} bytes, {ops} operations, {tensors} tensors)")
     print(f"weights: {off} floats in {len(g.params)} tensors; {len(g.ops)} operations")
 
 
@@ -420,19 +425,6 @@ def reference(net, out_dir, photo_path, size=640):
     print(f"reference: input and {len(outputs)} layers; letterbox scale {scale:.4f}, pad {left} {top}")
 
 
-def write_board_blob(out_dir, base):
-    """Writes <base>_board.bin: the float parameters, the int8 weights and the weight scales, in
-    this order. The ESP32-P4 example (examples/Yolo11Graph) copies it to the "model" partition."""
-    names = [f"{base}_graph_weights.bin", f"{base}_int8_weights.bin", f"{base}_int8_scales.bin"]
-    path = os.path.join(out_dir, f"{base}_board.bin")
-    with open(path, "wb") as dst:
-        for name in names:
-            with open(os.path.join(out_dir, name), "rb") as src:
-                dst.write(src.read())
-    print(f"board blob: {path} ({os.path.getsize(path)} bytes)")
-    return path
-
-
 def main(argv):
     if len(argv) < 3:
         print(__doc__)
@@ -443,7 +435,6 @@ def main(argv):
     net = YOLO(weights_pt).model.fuse().eval().float()
     photo = argv[3] if len(argv) > 3 else None
     export(net, out_dir, base, photo)
-    write_board_blob(out_dir, base)
     if photo is not None:
         reference(net, out_dir, photo)
     return 0

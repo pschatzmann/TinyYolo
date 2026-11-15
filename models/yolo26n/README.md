@@ -9,9 +9,7 @@ attention block.
 | File | Content | How it is made |
 |---|---|---|
 | `yolo26n.pt` | the Ultralytics checkpoint (5.5 MB) | downloaded by `tools/yolo26/yolo26_fetch_models.sh` (checksum checked) |
-| `yolo26n_graph.inc` | the operation table: `kOps`, `kParams`, `kQuant`, the detect heads, `kModel` | exported from `yolo26n.pt` |
-| `export/yolo26n_board.bin` | the board blob: float parameters, int8 weights, weight scales (12067648 bytes) | exported; flashed to the `model` partition |
-| `yolo26n.names` | the 80 class names | from the checkpoint |
+| `yolo26n.tym` | the single-file model (graph, scales, float and int8 weights, class names; 12091109 bytes) | written by the export (`tools/yolo/yolo_export.py`); the desktop loads it with `tinyyolo --tym` |
 
 Get the weights and the export (needs Python with the `ultralytics` package):
 
@@ -26,7 +24,7 @@ The examples use the table and the blob:
 
 - `examples/Yolo26Graph`: the sample photo on the ESP32-P4 (flash the blob first).
 - `examples/Yolo26CameraStream`: the P4 camera, streamed to the desktop viewer.
-- `tinyyolo --yolo26` (the common desktop tool) and `yolo26_check` (built by CMake from `desktop/`): the same model on the desktop.
+- `tinyyolo --tym models/yolo26n/yolo26n.tym` (the common desktop tool) and `tinyyolo --check models/yolo26n/yolo26n` (every layer against the reference): the same model on the desktop.
 
 Licence: the Ultralytics code and weights are AGPL-3.0 (https://github.com/ultralytics/ultralytics).
 The COCO dataset, which the classes come from, is CC BY 4.0.

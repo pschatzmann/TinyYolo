@@ -4,8 +4,10 @@
 // fastest model on the desktop, or the built-in Darknet sample when that folder is not there):
 //   --model <base>     a Darknet model: <base>.cfg, <base>.names, <base>.weights
 //                      (e.g. models/yolov4-tiny/yolov4-tiny; the cfg sets the input size)
-//   --yolo11 <folder>  a YOLO11 export (models/yolo11n/export)
-//   --yolo26 <folder>  a YOLO26 export (models/yolo26n/export)
+//   --check <base>     the layer check of a model (base: models/yolo11n/yolo11n): every layer and the head
+//                      against the export reference, and the detections on the test photo
+//   --tym <file>       a single-file model (docs/ModelFormat.md, written by the export; default:
+//                      models/yolo26n/yolo26n.tym)
 // Pictures (default: the webcam):
 //   --device <path>    V4L2 device (default: TINY_CAMERA_DEVICE, else /dev/video0)
 //   --image <ppm>      a binary PPM picture; repeat the option for several (they are shown in turn)
@@ -59,9 +61,9 @@
 #include <TinyYolo/platform/Task.h>
 #include <TinyYolo/TinyMaterialDesign/DetectionView.h>
 #include "DarknetModel.h"  // the built-in Darknet sample
-#include "yolo11n_graph.inc"
-#include "yolo26n_graph.inc"
 #include <TinyJPEGDecoder.h>  // the board sends JPEG frames
+#include "TinyYolo/app/ModelFile.h"  // single-file models (.tym)
+#include "LayerCheck.h"  // --check: every layer against the export reference
 
 using namespace tinygpu;  // TinyGPU's display types
 using namespace tinyyolo;
@@ -151,6 +153,18 @@ bool readFile(const std::string& path, std::vector<uint8_t>& bytes) {
   return true;
 }
 
+/// The bytes of a file; false when it cannot be read.
+bool readFileBytes(const std::string& path, std::vector<uint8_t>& bytes) {
+  FILE* f = fopen(path.c_str(), "rb");
+  if (f == nullptr) return false;
+  uint8_t buffer[65536];
+  size_t n;
+  bytes.clear();
+  while ((n = fread(buffer, 1, sizeof(buffer), f)) > 0) bytes.insert(bytes.end(), buffer, buffer + n);
+  fclose(f);
+  return true;
+}
+
 std::vector<std::string> readNames(const std::string& path) {
   std::vector<std::string> names;
   std::ifstream in(path);
@@ -237,38 +251,66 @@ int freeCores() {
 }
 
 /// A YOLO export (YOLO11 or YOLO26), through GraphYolo11: the weights from the export folder.
-class GraphRecognizer : public Recognizer {
+/// The class names of a single-file model (.tym); empty when the file cannot be read.
+std::vector<std::string> readModelNames(const std::string& path) {
+  std::vector<uint8_t> bytes;
+  if (!readFileBytes(path, bytes)) return {};
+  tym::ModelFile file;
+  if (file.begin(bytes.data(), bytes.size()) != Status::Ok) return {};
+  std::vector<std::string> names;
+  for (int i = 0; i < file.classCount(); ++i) names.push_back(file.className(i));
+  return names;
+}
+
+/// A single-file model (.tym, docs/ModelFormat.md): the graph, the scales and the names are in the file.
+class TymRecognizer : public Recognizer {
  public:
-  GraphRecognizer(const char* family, const GraphModel& table, const GraphQuant* per_tensor,
-                  const std::string& folder, const std::string& base, const Options& options)
-      : family_(family), base_(base), options_(options) {
-    if (!readFile(folder + "/" + base + "_graph_weights.bin", weights_) ||
-        (options.use_int8 && (!readFile(folder + "/" + base + "_int8_weights.bin", qweights_) ||
-                              !readFile(folder + "/" + base + "_int8_scales.bin", qscales_)))) {
-      fprintf(stderr, "tinyyolo: cannot read the %s weights from %s\n", family, folder.c_str());
+  TymRecognizer(const std::string& path, const Options& options) : options_(options) {
+    FILE* f = fopen(path.c_str(), "rb");
+    if (f == nullptr) {
+      fprintf(stderr, "tinyyolo: cannot open %s\n", path.c_str());
       return;
     }
-    names_ = readNames(options.names_path.empty() ? folder + "/" + base + ".names" : options.names_path);
-    if (names_.empty()) names_ = readNames(folder + "/../" + base + ".names");
-    GraphModel model = table;
+    uint8_t buffer[65536];
+    size_t n;
+    while ((n = fread(buffer, 1, sizeof(buffer), f)) > 0) bytes_.insert(bytes_.end(), buffer, buffer + n);
+    fclose(f);
+    if (file_.begin(bytes_.data(), bytes_.size()) != Status::Ok) {
+      fprintf(stderr, "tinyyolo: %s is not a valid model file\n", path.c_str());
+      return;
+    }
+    if (options_.use_int8 && options_.per_tensor != file_.perTensorQuant()) {
+      fprintf(stderr, "tinyyolo: %s has %s scales\n", path.c_str(),
+              file_.perTensorQuant() ? "per-tensor" : "shared");
+    }
+    name_ = file_.name();
+    for (int i = 0; i < file_.classCount(); ++i) names_.push_back(file_.className(i));
+    if (!options.names_path.empty()) names_ = readNames(options.names_path);
+    if (options_.use_int8 && (file_.int8Weights() == nullptr || file_.scaleCount() == 0)) {
+      fprintf(stderr, "tinyyolo: %s has no int8 weights\n", path.c_str());
+      return;
+    }
+    if (!options_.use_int8 && !file_.hasFloatWeights()) {
+      fprintf(stderr, "tinyyolo: %s has no float weights (use int8)\n", path.c_str());
+      return;
+    }
+    GraphModel model = file_.model();
     model.input_size = options.size;
-    if (options.use_int8 && options.per_tensor) model.quant = per_tensor;
     if (!options.use_int8) model.quant = nullptr;
-    ready_ = detector_.begin(model, backend_, reinterpret_cast<const float*>(weights_.data()),
-                             options.use_int8 ? reinterpret_cast<const int8_t*>(qweights_.data()) : nullptr,
-                             options.use_int8 ? reinterpret_cast<const float*>(qscales_.data()) : nullptr,
-                             options.score) == Status::Ok &&
+    ready_ = detector_.begin(model, backend_, file_.floatWeights(),
+                             options.use_int8 ? file_.int8Weights() : nullptr,
+                             options.use_int8 ? file_.int8Scales() : nullptr, options.score) == Status::Ok &&
              detections_.reserve(100) == Status::Ok;
-    if (!ready_) fprintf(stderr, "tinyyolo: the %s graph could not be set up\n", family);
+    if (!ready_) fprintf(stderr, "tinyyolo: the model in %s could not be set up\n", path.c_str());
   }
-  const char* name() const override { return family_; }
+  const char* name() const override { return "TYM"; }
   std::string description() const override {
-    std::string model = base_;  // "yolo11n" -> "YOLO11n"
-    for (size_t i = 0; i < 4 && i < model.size(); ++i) model[i] = (char)toupper((unsigned char)model[i]);
+    std::string model = name_;
+    for (size_t i = 0; i < model.size(); ++i) model[i] = (char)toupper((unsigned char)model[i]);
     return model;
   }
   std::string detail() const override {
-    return options_.use_int8 ? (options_.per_tensor ? "int8, per-tensor scales" : "int8, shared scales")
+    return options_.use_int8 ? (file_.perTensorQuant() ? "int8, per-tensor scales" : "int8, shared scales")
                              : "float32 weights";
   }
   bool ready() const override { return ready_; }
@@ -284,17 +326,18 @@ class GraphRecognizer : public Recognizer {
   double lastMs() const override { return ms_; }
 
  private:
-  const char* family_;
-  std::string base_;
   const Options& options_;
+  std::vector<uint8_t> bytes_;
+  tym::ModelFile file_;
+  std::string name_;
   DotProductBackend backend_{freeCores()};
   GraphYolo11 detector_;
   Detections detections_;
-  std::vector<uint8_t> weights_, qweights_, qscales_;
   std::vector<std::string> names_;
   bool ready_ = false;
   double ms_ = 0;
 };
+
 
 // ---------------------------------------------------------------- pictures
 
@@ -459,7 +502,7 @@ std::unique_ptr<DetectionView<RGB565>> view;
 
 void printUsage(const char* program) {
   fprintf(stderr,
-          "usage: %s [--model <base> | --yolo11 <folder> | --yolo26 <folder>] [--device <path> | --image <ppm>]...\n"
+          "usage: %s [--model <base> | --tym <file> | --check <base>] [--device <path> | --image <ppm>]...\n"
           "       [--serial <port> [--rotate <deg>]] [--float] [--calibrate] [--per-tensor] [--size N] [--score T]\n"
           "       [--names <file>] [--frames N] [--no-window]\n",
           program);
@@ -691,7 +734,7 @@ int runBoardStream() {
 }  // namespace
 
 int main(int argc, char** argv) {
-  std::string darknet_base, yolo11_folder, yolo26_folder;
+  std::string darknet_base, tym_path, check_base;
   const char* device = nullptr;
   std::vector<std::string> images;
   bool frames_given = false;
@@ -699,8 +742,8 @@ int main(int argc, char** argv) {
     const std::string arg = argv[i];
     const bool has_value = i + 1 < argc;
     if (arg == "--model" && has_value) darknet_base = argv[++i];
-    else if (arg == "--yolo11" && has_value) yolo11_folder = argv[++i];
-    else if (arg == "--yolo26" && has_value) yolo26_folder = argv[++i];
+    else if (arg == "--tym" && has_value) tym_path = argv[++i];
+    else if (arg == "--check" && has_value) check_base = argv[++i];
     else if (arg == "--device" && has_value) device = argv[++i];
     else if (arg == "--image" && has_value) images.push_back(argv[++i]);
     else if (arg == "--names" && has_value) options.names_path = argv[++i];
@@ -726,12 +769,12 @@ int main(int argc, char** argv) {
   }
 #ifdef TINYYOLO_DEFAULT_MODEL
   // No model given: the YOLO26n export of the repository, when it is there.
-  if (darknet_base.empty() && yolo11_folder.empty() && yolo26_folder.empty()) {
-    std::ifstream probe(std::string(TINYYOLO_DEFAULT_MODEL) + "/yolo26n_graph_weights.bin");
-    if (probe) yolo26_folder = TINYYOLO_DEFAULT_MODEL;
+  if (darknet_base.empty() && tym_path.empty() && check_base.empty()) {
+    std::ifstream probe(TINYYOLO_DEFAULT_MODEL);
+    if (probe) tym_path = TINYYOLO_DEFAULT_MODEL;
   }
 #endif
-  const int models = (!darknet_base.empty()) + (!yolo11_folder.empty()) + (!yolo26_folder.empty());
+  const int models = (!darknet_base.empty()) + (!tym_path.empty()) + (!check_base.empty());
   if (models > 1) {
     fprintf(stderr, "tinyyolo: choose one model\n");
     return 2;
@@ -740,10 +783,14 @@ int main(int argc, char** argv) {
 
   TinyYoloLogger.begin(log_output, TinyYoloLogLevel::Info);
 
+  // The layer check: no window and no picture source.
+  if (!check_base.empty()) return layercheck::run(check_base, options.use_int8);
+
   // A board stream: the board detects, the window shows its pictures and detections.
   if (!board_port.empty()) {
-#ifdef TINYYOLO_BOARD_NAMES
-    if (options.names_path.empty()) options.names_path = TINYYOLO_BOARD_NAMES;  // the YOLO11n names
+#ifdef TINYYOLO_BOARD_MODEL
+    // The class names come from the model file the board runs (YOLO11n); --names overrides them.
+    if (options.names_path.empty()) board_names = readModelNames(TINYYOLO_BOARD_MODEL);
 #endif
     if (!options.names_path.empty()) board_names = readNames(options.names_path);
     return runBoardStream();
@@ -758,12 +805,8 @@ int main(int argc, char** argv) {
   if (!source->open()) return 1;
 
   // The model.
-  if (!yolo11_folder.empty() || !yolo26_folder.empty()) {
-    const bool is11 = !yolo11_folder.empty();
-    recognizer.reset(is11 ? static_cast<Recognizer*>(new GraphRecognizer(
-                                "YOLO11", yolo11::kModel, yolo11::kQuantPerTensor, yolo11_folder, "yolo11n", options))
-                          : static_cast<Recognizer*>(new GraphRecognizer(
-                                "YOLO26", yolo26::kModel, yolo26::kQuantPerTensor, yolo26_folder, "yolo26n", options)));
+  if (!tym_path.empty()) {
+    recognizer.reset(new TymRecognizer(tym_path, options));
   } else {
     if (!darknet_base.empty()) {
       file_source.emplace();

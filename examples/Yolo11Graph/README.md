@@ -4,7 +4,7 @@ YOLO11n on the ESP32-P4 with the TinyYolo graph path (`Graph` + `Esp32NnBackend`
 convolutions run on the P4 assembly kernels; the rest of the graph runs in this library. On the
 test photo (`photo.rgb`, 375x250, letterboxed to 320x320) one frame takes about 1.5 s for the graph and
 0.007 s for the head (class 17, score 0.818). The sketch uses `tinyyolo::GraphYolo11` (one call per frame) and
-`tinyyolo::GraphYolo11Partition` (the weights from the `model` partition).
+`tinyyolo::ModelFilePartition` (the model file in the `model` partition).
 
 ## Requirements
 
@@ -23,10 +23,7 @@ The manual steps are:
 python3 tools/yolo/yolo_export.py yolo11n.pt out/ photo.jpg
 ```
 
-This writes `out/yolo11n_board.bin` (the blob for the board) and `out/yolo11n.inc` (the table).
-`yolo11n_graph.inc` in this folder is a copy of the table from `tools/yolo/yolo11n_graph.inc`, which
-the desktop checker uses. If you export a new model, copy the new `.inc` here and rename it to
-`yolo11n_graph.inc`.
+The export writes `out/` and `yolo11n.tym` next to it: the single-file model for the board.
 
 ## Flash the blob
 
@@ -34,7 +31,7 @@ The blob goes to the start of the "model" partition (absolute offset 0x310000, s
 `partitions.csv`):
 
 ```sh
-esptool --chip esp32p4 --port /dev/ttyACM0 write_flash 0x310000 out/yolo11n_board.bin
+esptool --chip esp32p4 --port /dev/ttyACM0 write_flash 0x310000 yolo11n.tym
 ```
 
 The blob is 13104288 bytes. The sketch's sizes must match the export: `kFloatCount` 2616232 floats,

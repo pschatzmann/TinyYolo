@@ -14,8 +14,8 @@ Use a YOLOv4-tiny model with the tinyyolo tool:
 
 ```bash
 tools/yolov4_fetch_models.sh
-cmake -S . -B build -DTINYYOLO_BUILD_CAMERA_VIEW=ON && cmake --build build --target camera_view
-build/desktop/camera_view --model models/yolov4-tiny/yolov4-tiny
+cmake -S . -B build && cmake --build build --target tinyyolo
+build/desktop/tinyyolo --model models/yolov4-tiny/yolov4-tiny --image photo.ppm --no-window
 ```
 
 Licences: the Darknet code and the YOLOv4 model's licence text are in `yolov4-tiny/`

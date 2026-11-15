@@ -3,18 +3,13 @@
 // (partitions.csv, offset 0x310000). See README.md for the steps.
 #include <Arduino.h>
 #include <TinyYolo.h>
-#include <TinyYolo/app/GraphYolo11Partition.h>
+#include <TinyYolo/app/ModelFilePartition.h>
 #include <TinyYolo/backend/Esp32NnBackend.h>
-#include "yolo11n_graph.inc"  // the table: yolo11::kModel
 
 using namespace tinyyolo;
 
 // The sizes of the export (tools/yolo/yolo_export.py) for the nano model.
-const size_t kFloatCount = 2616232;  // float parameters
-const size_t kInt8Count = 2606816;   // int8 convolution weights
-const size_t kScaleCount = 8136;     // float weight scales
 const int kInputSize = 320;  // the network input (the measurements use 320x320)
-const bool kPerTensorScales = false;  // true: yolo11::kQuantPerTensor (more accurate, slower)
 
 // The test photo, embedded from photo.rgb by photo.S (raw RGB888).
 extern "C" const uint8_t kPhotoData[];
@@ -23,7 +18,7 @@ const int kPhotoWidth = 375;
 const int kPhotoHeight = 250;
 
 Output out(Serial0);
-GraphYolo11Partition weight_blob;
+ModelFilePartition model_file;  // the model file (docs/ModelFormat.md) in the "model" partition
 GraphYolo11 detector;
 Esp32NnBackend backend;  // int8 convolutions: the P4 assembly kernels (ESP-NN for other shapes)
 Detections detections;
@@ -42,14 +37,13 @@ void setup() {
     out.printf("photo.rgb does not match the photo size");
     stop();
   }
-  if (weight_blob.begin("model", kFloatCount, kInt8Count, kScaleCount) != Status::Ok) {
-    out.printf("weights not loaded: flash yolo11n_board.bin at 0x310000");
+  if (model_file.begin("model") != Status::Ok) {
+    out.printf("weights not loaded: flash the model file at 0x310000");
     stop();
   }
-  GraphModel model = yolo11::kModel;
+  GraphModel model = model_file.model();
   model.input_size = kInputSize;
-  if (kPerTensorScales) model.quant = yolo11::kQuantPerTensor;
-  if (detector.begin(model, backend, weight_blob.weights(), weight_blob.qweights(), weight_blob.qscales()) != Status::Ok ||
+  if (detector.begin(model, backend, model_file.floatWeights(), model_file.int8Weights(), model_file.int8Scales()) != Status::Ok ||
       detections.reserve(100) != Status::Ok) {
     out.printf("detector setup failed");
     stop();
