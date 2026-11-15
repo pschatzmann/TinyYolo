@@ -123,13 +123,13 @@ image: the test photo by default, or `CALIBRATION_IMAGE` for another image.
 
 | Name | Where | What |
 |---|---|---|
-| `yolo11_detect` | `desktop/yolo/yolo_detect.cpp` | desktop: detections on a PPM image, through `GraphYolo11` |
+| `tinyyolo --yolo11 <folder> --image <ppm> --no-window` | `desktop/tinyyolo/tinyyolo.cpp` | desktop: detections on a PPM image, through `GraphYolo11` |
 | `yolo11_check` | `desktop/yolo/yolo_check.cpp` | desktop: every layer against the PyTorch reference |
 | `Yolo11Graph` | `examples/Yolo11Graph` | P4: the sample photo from flash, graph path |
-| `Yolo11CameraStream` | `examples/Yolo11CameraStream` | P4: camera, streamed to `camera_view`, graph path |
-| `yolo26_detect`, `yolo26_check` | `desktop/yolo/yolo_detect.cpp`, `desktop/yolo/yolo_check.cpp` | desktop: as the YOLO11 tools, for YOLO26n |
+| `Yolo11CameraStream` | `examples/Yolo11CameraStream` | P4: camera, streamed to `tinyyolo`, graph path |
+| `tinyyolo --yolo26 …`, `yolo26_check` | `desktop/tinyyolo/tinyyolo.cpp`, `desktop/yolo/yolo_check.cpp` | desktop: as the YOLO11 tools, for YOLO26n |
 | `Yolo26Graph` | `examples/Yolo26Graph` | P4: the sample photo from flash; `kP4Kernels` selects the P4 kernels or ESP-NN |
-| `Yolo26CameraStream` | `examples/Yolo26CameraStream` | P4: camera, streamed to `camera_view`, graph path |
+| `Yolo26CameraStream` | `examples/Yolo26CameraStream` | P4: camera, streamed to `tinyyolo`, graph path |
 
 The YOLO11 and YOLO26 tools and examples start with `yolo11`/`Yolo11` and `yolo26`/`Yolo26`; the YOLOv4
 ones start with `yolov4`/`Yolov4` (`tools/yolov4_fetch_models.sh`, `examples/Yolov4CameraStream`). The

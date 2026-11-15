@@ -28,7 +28,7 @@ Files:
    ```bash
    esptool.py --chip esp32s3 --port /dev/ttyACM0 write_flash 0x140000 yolov4-tiny.blob
    ```
-4. Start the desktop viewer: `camera_view --serial /dev/ttyACM0 --rotate 180`.
+4. Start the desktop viewer: `tinyyolo --serial /dev/ttyACM0 --rotate 180`.
 
 ## Limits
 

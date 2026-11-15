@@ -57,6 +57,8 @@ class ImageView {
 
   int width() const { return width_; }
   int height() const { return height_; }
+  /// Bytes from one row to the next (width * bytes per pixel when the rows are packed).
+  int rowBytes() const { return row_bytes_; }
   PixelFormat format() const { return format_; }
 
   /// RGB of pixel (x, y) with components in [0, 1]. Coordinates must lie inside the image.

@@ -3,7 +3,7 @@
 // display needed).
 //
 // Board: ESP32-S3-EYE pin preset (the board used in TinyCamera's examples),
-// PSRAM=opi. The desktop viewer reads the stream: camera_view --serial
+// PSRAM=opi. The desktop viewer reads the stream: tinyyolo --serial
 // /dev/ttyACM0
 //
 // Frame protocol (binary-safe, 921600 baud, 8N1):

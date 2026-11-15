@@ -26,7 +26,7 @@ The examples use the table and the blob:
 
 - `examples/Yolo26Graph`: the sample photo on the ESP32-P4 (flash the blob first).
 - `examples/Yolo26CameraStream`: the P4 camera, streamed to the desktop viewer.
-- `yolo26_detect` and `yolo26_check` (built by CMake from `desktop/yolo/`): the same model on the desktop.
+- `tinyyolo --yolo26` (the common desktop tool) and `yolo26_check` (built by CMake from `desktop/`): the same model on the desktop.
 
 Licence: the Ultralytics code and weights are AGPL-3.0 (https://github.com/ultralytics/ultralytics).
 The COCO dataset, which the classes come from, is CC BY 4.0.

@@ -244,6 +244,19 @@ camera_frame.begin(config);           // camera_config_t from TinyCamera, with t
 if (camera_frame.next()) model.detect(camera_frame.image());
 ```
 
+### DetectionView (TinyMaterialDesign)
+
+A TinyMaterialDesign widget that shows a picture with its detection boxes and, below it, cards. With `setInfo(model, detail, source)` there are three: the model with its settings (for example "int8, shared scales") and the picture source, the number of detections, and the results, one row per detection with a colour swatch, the class, a score bar and the percentage. Without `setInfo()` the results are one card with the count as its title. The class colour is the same on the picture and in the card.
+Include `<TinyYolo/TinyMaterialDesign/DetectionView.h>` after `<TinyMaterialDesign.h>` and `<TinyYolo.h>`.
+Its label function gives the class names, so it works with any model (Darknet or a YOLO graph):
+
+```cpp
+tinyyolo::DetectionView<RGB565> view(tinymd::Bounds(0, 0, 320, 320), 320, 240,
+                                     [&](int class_id) { return model.label(class_id); });
+view.setPicture(image);
+view.setDetections(model.detections());
+```
+
 ### LcdOverlay (TinyGPU)
 
 Shows a frame and its detection boxes on a TinyGPU LCD board. Include

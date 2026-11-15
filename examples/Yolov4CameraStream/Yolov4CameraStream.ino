@@ -8,7 +8,7 @@
 //   esptool.py --chip esp32s3 --port /dev/ttyACM0 write_flash 0x140000 yolov4-tiny.blob
 // (use --chip esp32p4 on the P4; yolov4-tiny.blob is made with tinyyolo_export_blob.)
 //
-// The stream goes to the desktop viewer: camera_view --serial /dev/ttyACM0 --rotate 180
+// The stream goes to the desktop viewer: tinyyolo --serial /dev/ttyACM0 --rotate 180
 // Protocol: see CameraStream.ino.
 
 #include <TinyYolo.h>

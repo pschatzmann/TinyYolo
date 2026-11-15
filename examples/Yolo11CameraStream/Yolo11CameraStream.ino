@@ -2,7 +2,7 @@
 // computer. The camera frame is letterboxed to 640x640 and detected with the TinyYolo graph
 // (tinyyolo::GraphYolo11, about 6 s per frame); every frame is streamed, with the boxes of the last
 // detection. The stream protocol and the viewer are the same as Yolov4CameraStream:
-//   camera_view --serial /dev/ttyACM0 --rotate 180
+//   tinyyolo --serial /dev/ttyACM0 --rotate 180
 //
 // The weights are in the "model" partition (partitions.csv, offset 0x310000): flash
 // yolo11n_board.bin, written by tools/yolo/yolo_export.py (see README.md).

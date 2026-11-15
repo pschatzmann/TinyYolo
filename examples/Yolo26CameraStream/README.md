@@ -31,8 +31,8 @@ are the same as in `Yolov4CameraStream`.
    arduino-cli upload  -b esp32:esp32:esp32p4:PSRAM=enabled,FlashSize=32M,ChipVariant=postv3,PartitionScheme=custom \
        -p /dev/ttyACM0 examples/Yolo26CameraStream
    ```
-4. Start the desktop viewer (built with the `camera_view` target):
-   `camera_view --serial /dev/ttyACM0 --rotate 180`.
+4. Start the desktop viewer (built with the `tinyyolo` target):
+   `tinyyolo --serial /dev/ttyACM0 --rotate 180`.
 
 ## Notes
 

@@ -10,7 +10,7 @@ version (`tools/<version>_fetch_models.sh`).
 | `yolo11n/` | YOLO11n (Ultralytics), trained on COCO | 80 | 640x640 | graph (table and blob, exported) | `tools/yolo11/yolo11_fetch_models.sh` |
 | `yolo26n/` | YOLO26n (Ultralytics), trained on COCO | 80 | 640x640 | graph (table and blob, exported) | `tools/yolo26/yolo26_fetch_models.sh` |
 
-Use a YOLOv4-tiny model with the camera viewer:
+Use a YOLOv4-tiny model with the tinyyolo tool:
 
 ```bash
 tools/yolov4_fetch_models.sh
