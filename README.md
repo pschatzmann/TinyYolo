@@ -3,7 +3,7 @@
 [![Arduino Library](https://img.shields.io/badge/Arduino-Library-blue.svg)](https://www.arduino.cc/reference/en/libraries/)
 [![CMake](https://img.shields.io/badge/CMake-Supported-blue.svg)](CMakeLists.txt)
 [![Header Only](https://img.shields.io/badge/Header-Only-blue.svg)](src/TinyYolo.h)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License: Apache](https://img.shields.io/badge/License-Apache-yellow.svg)](https://opensource.org/licenses/Apache-2.0)
 
 ## Introduction
 
@@ -20,7 +20,7 @@ It supports two kinds of model:
 Weights can be stored as int8, which saves memory. The portable backend runs on every board, and
 the ESP32 family has optimised backends:
 
-- **ESP32-P4:** the int8 convolutions use Espressif's PIE assembly kernels (vendored, MIT). The
+- **ESP32-P4:** the int8 convolutions use Espressif's PIE assembly kernels (vendored, Apache-2.0). The
   YOLO11n graph takes about 1.5 s per 320x320 picture on this board.
 - **ESP32-S3:** the int8 convolutions use ESP-NN (vendored in the library, no extra flags), and the linear 1x1 convolutions use our own exact kernel.
 - **RP2040/RP2350 (Raspberry Pi Pico, RP2350B with PSRAM):** the int8 convolutions use CMSIS-NN (vendored, the default backend on these chips). The YOLO11n and YOLO26n graphs run from flash with the int8 weights in PSRAM.
